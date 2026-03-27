@@ -13,7 +13,34 @@ TarsWeb_BRANCH=master
 TarsGo_BRANCH=master
 
 ROOT="$(cd "$(dirname "$0")"; pwd)"
-INSTALL_PATH="${1:-$ROOT/app}"
+INSTALL_PATH="${TARS_INSTALL_PATH:-$ROOT/app}"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --install-path=*)
+            INSTALL_PATH="${1#*=}"
+            shift
+            ;;
+        --install-path|-i)
+            if [ -z "${2:-}" ]; then
+                echo "error: $1 requires a value"
+                exit 1
+            fi
+            INSTALL_PATH="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--install-path <path>]"
+            echo "       $0 [<install_path>]"
+            exit 0
+            ;;
+        *)
+            # Backward compatible: first positional arg is install path.
+            INSTALL_PATH="$1"
+            shift
+            ;;
+    esac
+done
 
 clone_or_update() {
     local repo_url="$1"
@@ -27,6 +54,9 @@ clone_or_update() {
             git fetch origin "$branch" && git pull --ff-only origin "$branch"
         )
         return 0
+    else
+        echo "[clone] $target_dir not exists, clone from $branch"
+        rm -rf "$target_dir"
     fi
 
     if [ -d "$target_dir" ]; then
